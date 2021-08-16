@@ -1,25 +1,25 @@
 var sqlite3 = require("sqlite3").verbose();
-var db = new sqlite3.Database("db.sqlite");
+var db = new sqlite3.Database("./db.sqlite");
 
 db.serialize(function () {
   db.run(`
-  CREATE TABLE "public"."User" (
+  CREATE TABLE User (
     id SERIAL PRIMARY KEY NOT NULL,
     name VARCHAR(255),
     email VARCHAR(255) UNIQUE NOT NULL
   );
   
-  CREATE TABLE "public"."Post" (
+  CREATE TABLE Post (
     id SERIAL PRIMARY KEY NOT NULL,
     title VARCHAR(255) NOT NULL,
     "createdAt" TIMESTAMP NOT NULL DEFAULT now(),
     content TEXT,
     published BOOLEAN NOT NULL DEFAULT false,
     "authorId" INTEGER NOT NULL,
-    FOREIGN KEY ("authorId") REFERENCES "public"."User"(id)
+    FOREIGN KEY ("authorId") REFERENCES User(id)
   );
   
-  CREATE TABLE "public"."Profile" (
+  CREATE TABLE Profile (
     id SERIAL PRIMARY KEY NOT NULL,
     bio TEXT,
     "userId" INTEGER UNIQUE NOT NULL,
