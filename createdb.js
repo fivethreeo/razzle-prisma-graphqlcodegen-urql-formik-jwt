@@ -1,10 +1,8 @@
-const connect = require('@databases/sqlite');
-const {sql} = require('@databases/sqlite');
+var sqlite3 = require("sqlite3").verbose();
+var db = new sqlite3.Database("db.sqlite");
 
-const db = connect('db.sqlite');
-
-async function prepare() {
-  await db.query(sql`
+db.serialize(function () {
+  db.run(`
   CREATE TABLE "public"."User" (
     id SERIAL PRIMARY KEY NOT NULL,
     name VARCHAR(255),
@@ -28,5 +26,17 @@ async function prepare() {
     FOREIGN KEY ("userId") REFERENCES "public"."User"(id)
   );
 `);
-}
-const prepared = prepare();
+  /*
+  var stmt = db.prepare("INSERT INTO lorem VALUES (?)");
+  for (var i = 0; i < 10; i++) {
+      stmt.run("Ipsum " + i);
+  }
+  stmt.finalize();
+
+  db.each("SELECT rowid AS id, info FROM lorem", function(err, row) {
+      console.log(row.id + ": " + row.info);
+  });
+*/
+});
+
+db.close();
