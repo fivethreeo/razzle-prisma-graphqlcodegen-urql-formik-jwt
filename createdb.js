@@ -8,22 +8,26 @@ db.serialize(function () {
     name VARCHAR(255),
     email VARCHAR(255) UNIQUE NOT NULL
   );
-  
-  CREATE TABLE Post (
+  `);
+
+  db.run(`
+    CREATE TABLE Post (
     id SERIAL PRIMARY KEY NOT NULL,
     title VARCHAR(255) NOT NULL,
-    "createdAt" TIMESTAMP NOT NULL DEFAULT now(),
+    createdAt TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
     content TEXT,
     published BOOLEAN NOT NULL DEFAULT false,
-    "authorId" INTEGER NOT NULL,
-    FOREIGN KEY ("authorId") REFERENCES User(id)
+    authorId INTEGER NOT NULL,
+    FOREIGN KEY (authorId) REFERENCES User(id)
   );
-  
-  CREATE TABLE Profile (
+  `);
+
+  db.run(`
+    CREATE TABLE Profile (
     id SERIAL PRIMARY KEY NOT NULL,
     bio TEXT,
-    "userId" INTEGER UNIQUE NOT NULL,
-    FOREIGN KEY ("userId") REFERENCES "public"."User"(id)
+    userId INTEGER UNIQUE NOT NULL,
+    FOREIGN KEY (userId) REFERENCES User(id)
   );
 `);
   /*

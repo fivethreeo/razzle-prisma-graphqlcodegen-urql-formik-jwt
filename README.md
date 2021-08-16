@@ -13,6 +13,11 @@ Install it and run:
 ```bash
 yarn install
 yarn start
+
+sed -ie 's/postgresql/sqlite/g' prisma/schema.prisma 
+sed -ie 's/sqlite/postgresql/g' prisma/schema.prisma
+DATABASE_URL=file:../db.sqlite node_modules/.bin/prisma db pull
+
 ```
 
 ## Idea behind the example
