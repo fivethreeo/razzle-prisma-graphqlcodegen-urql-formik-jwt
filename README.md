@@ -12,12 +12,19 @@ Install it and run:
 
 ```bash
 yarn install
+
+node createdb.js
+sed -ie 's/postgresql/sqlite/g' prisma/schema.prisma 
+DATABASE_URL=file:../db.sqlite node_modules/.bin/prisma db pull
+DATABASE_URL=file:../db.sqlite node_modules/.bin/prisma generate
+yarn graphql-codegen
+yarn add -D @app/gql@link:./src/gql
+
 yarn start
 
-sed -ie 's/postgresql/sqlite/g' prisma/schema.prisma 
 sed -ie 's/sqlite/postgresql/g' prisma/schema.prisma
-DATABASE_URL=file:../db.sqlite node_modules/.bin/prisma db pull
-
+DATABASE_URL=file:../db.sqlite node_modules/.bin/prisma generate
+yarn build
 ```
 
 ## Idea behind the example

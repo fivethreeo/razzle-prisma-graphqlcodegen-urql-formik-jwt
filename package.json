@@ -9,6 +9,9 @@
     "start:prod": "NODE_ENV=production node build/server.js"
   },
   "dependencies": {
+    "@graphql-tools/graphql-file-loader": "^7.0.4",
+    "@graphql-tools/load": "^7.1.6",
+    "@graphql-tools/merge": "^8.0.1",
     "@prisma/client": "2.29.1",
     "apollo-server-express": "^3.1.2",
     "bcryptjs": "^2.4.3",
@@ -21,6 +24,11 @@
     "reflect-metadata": "^0.1.13"
   },
   "devDependencies": {
+    "@app/gql": "link:./src/gql",
+    "@graphql-codegen/cli": "^2.0.1",
+    "@graphql-codegen/gql-tag-operations-preset": "^1.0.1",
+    "@graphql-codegen/typescript": "^2.0.0",
+    "@graphql-codegen/typescript-resolvers": "^2.0.0",
     "@testing-library/dom": "^7.29.4",
     "@testing-library/jest-dom": "^5.5.0",
     "@testing-library/react": "^10.0.3",
