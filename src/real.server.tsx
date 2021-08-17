@@ -1,30 +1,29 @@
-
-import 'reflect-metadata';
-import express, { Request, Response } from 'express';
+import express, { Request, Response } from "express";
 import React from "react";
-import { ApolloServer } from 'apollo-server-express';
-import { buildSchema } from 'type-graphql';
-import { createConnection } from 'typeorm';
 import { renderToString } from "react-dom/server";
 import { StaticRouter } from "react-router-dom";
-import { User } from "./entities/User";
-import { UserResolver } from "./schema/userResolver";
+import addApollo from "./apollo";
 
 import App from "./App";
 
 type STATIC_CONTEXT = {
-  statusCode?: number,
-  url?: string
-}
+  statusCode?: number;
+  url?: string;
+};
 
 const assets = require(process.env.RAZZLE_ASSETS_MANIFEST);
 
-const cssLinksFromAssets = (public_path: string, assets: unknown, entrypoint: string): string => {
+const cssLinksFromAssets = (
+  public_path: string,
+  assets: unknown,
+  entrypoint: string
+): string => {
   return assets[entrypoint]
     ? assets[entrypoint].css
       ? assets[entrypoint].css
           .map(
-            (asset: string) => `<link rel="stylesheet" href="${public_path}${asset}">`
+            (asset: string) =>
+              `<link rel="stylesheet" href="${public_path}${asset}">`
           )
           .join("")
       : ""
@@ -41,7 +40,8 @@ const jsScriptTagsFromAssets = (
     ? assets[entrypoint].js
       ? assets[entrypoint].js
           .map(
-            (asset: string) => `<script src="${public_path}${asset}"${extra}></script>`
+            (asset: string) =>
+              `<script src="${public_path}${asset}"${extra}></script>`
           )
           .join("")
       : ""
@@ -87,37 +87,13 @@ export const renderApp = async (req: Request, res: Response) => {
   return { html, context };
 };
 
-const db_url = process.env.DATABASE_URL || 'sqlite://./db.sqlite3'
-const db_type = db_url.split('://')[0];
-
-const db_options = db_type === 'sqlite' ? {
-    "database": db_url.split('://')[1]
-} : {
-    "url": db_url
-}
-
 const createserver = async () => {
-  // @ts-ignore
-  await createConnection({
-    entities: [User],
-    type: db_type,
-    ...db_options
-  });
-
-  const schema = await buildSchema({
-    resolvers: [UserResolver]
-  });
-
-  const apolloServer = new ApolloServer({
-    schema,
-    context: ({ req, res }) => ({ req, res })
-  });
 
   let server = express();
-
-  await apolloServer.start()
-
-  apolloServer.applyMiddleware({ app: server });
+  
+  if (addApollo) {
+    server = await addApollo(server);
+  }
 
   server = server
     .disable("x-powered-by")
