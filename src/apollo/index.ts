@@ -3,8 +3,9 @@ import { ApolloServer } from "apollo-server-express";
 import { buildSchema } from "type-graphql";
 import { loadDocuments } from "@graphql-tools/load";
 import { GraphQLFileLoader } from "@graphql-tools/graphql-file-loader";
-import { mergeResolvers } from "@graphql-tools/merge";
+// import { mergeResolvers } from "@graphql-tools/merge";
 
+import AuthResolver from "../auth/resolver";
 
 const addApollo = async (server) => {
 
@@ -14,7 +15,8 @@ const addApollo = async (server) => {
   });
 
   const schema = await buildSchema({
-    resolvers: [UserResolver],
+    typeDefs,
+    resolvers: [AuthResolver],
   });
 
   const apolloServer = new ApolloServer({
@@ -26,6 +28,8 @@ const addApollo = async (server) => {
   await apolloServer.start();
 
   apolloServer.applyMiddleware({ app: server });
+
+  return server;
 } 
 
-export default addApollo
+export default addApollo;
