@@ -20,6 +20,9 @@ node_modules/.bin/prisma generate
 yarn graphql-codegen
 yarn add -D @app/gql@link:./src/gql
 
+# run a devserver with sqlite
+rm db.sqlite
+node createdb.js
 DATABASE_URL=file:../db.sqlite JWT_SECRET=secret yarn start
 
 # run a prod build with sqlite
@@ -37,7 +40,3 @@ export DATABASE_URL=postgres://username:password@localhost:5432/razzle
 node_modules/.bin/prisma migrate
 JWT_SECRET=secret yarn start:prod
 ```
-
-## Idea behind the example
-This is a basic, bare-bones example of how to use razzle. It satisfies the entry points
-`src/index.js` for the server and and `src/client.js` for the browser.
