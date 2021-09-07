@@ -64,11 +64,10 @@ const resolvers: Resolvers = {
           { expiresIn: "1d" }
         );
         
-        res.cookie("access_token", token)
-        // , {
-        //   httpOnly: true,
-        //   secure: process.env.NODE_ENV === "production",
-        // })
+        res.cookie("access_token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+        })
 
         return {
           token,
