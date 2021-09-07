@@ -44,18 +44,18 @@ const resolvers: Resolvers = {
           token,
         };
       } catch (error) {
-        throw new Error(error.message);
+        throw new Error(process.env.NODE_ENV === 'development' ? error.message : 'Registration failed' );
       }
     },
     async login(_, { email, password }, { prisma }) {
       try {
         const user = await prisma.user.findFirst({ where: { email } });
         if (!user) {
-          throw new Error("No user with that email");
+          throw new Error(process.env.NODE_ENV === 'development' ? "No user with that email" : 'Login failed' );
         }
         const isValid = await compare(password, user.password);
         if (!isValid) {
-          throw new Error("Incorrect password");
+          throw new Error(process.env.NODE_ENV === 'development' ? "Incorrect password" : 'Login failed' );
         }
         // return jwt
         const token = sign(
