@@ -16,15 +16,26 @@ yarn install
 node createdb.js
 sed -ie 's/postgresql/sqlite/g' prisma/schema.prisma 
 DATABASE_URL=file:../db.sqlite node_modules/.bin/prisma db pull
-DATABASE_URL=file:../db.sqlite node_modules/.bin/prisma generate
+node_modules/.bin/prisma generate
 yarn graphql-codegen
 yarn add -D @app/gql@link:./src/gql
 
-DATABASE_URL=file:../db.sqlite yarn start
+DATABASE_URL=file:../db.sqlite JWT_SECRET=secret yarn start
 
-sed -ie 's/sqlite/postgresql/g' prisma/schema.prisma
-DATABASE_URL=file:../db.sqlite node_modules/.bin/prisma generate
+# run a prod build with sqlite
+rm db.sqlite
+node createdb.js
 yarn build
+DATABASE_URL=file:../db.sqlite JWT_SECRET=secret yarn start:prod
+
+# run a prod build with postgresql
+sed -ie 's/sqlite/postgresql/g' prisma/schema.prisma
+node_modules/.bin/prisma generate
+yarn graphql-codegen
+yarn build
+export DATABASE_URL=postgres://username:password@localhost:5432/razzle
+node_modules/.bin/prisma migrate
+JWT_SECRET=secret yarn start:prod
 ```
 
 ## Idea behind the example
