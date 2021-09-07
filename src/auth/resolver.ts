@@ -47,7 +47,7 @@ const resolvers: Resolvers = {
         throw new Error(process.env.NODE_ENV === 'development' ? error.message : 'Registration failed' );
       }
     },
-    async login(_, { email, password }, { prisma }) {
+    async login(_, { email, password }, { prisma, res }) {
       try {
         const user = await prisma.user.findFirst({ where: { email } });
         if (!user) {
@@ -63,6 +63,13 @@ const resolvers: Resolvers = {
           process.env.JWT_SECRET,
           { expiresIn: "1d" }
         );
+        
+        res.cookie("access_token", token)
+        // , {
+        //   httpOnly: true,
+        //   secure: process.env.NODE_ENV === "production",
+        // })
+
         return {
           token,
           user,

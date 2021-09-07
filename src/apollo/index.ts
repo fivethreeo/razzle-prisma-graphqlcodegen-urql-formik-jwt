@@ -38,14 +38,14 @@ const addApollo = async (server) => {
   const apolloServer = new ApolloServer({
     schema: schemaWithResolvers,
     context: ({ req, res }) => {
-      const token = req.get("Authorization") || "";
+      const token = req.cookies.access_token || req.get("Authorization") || "";
       return { req, res, prisma, user: getUser(token.replace("Bearer", "")) };
     },
   });
 
   await apolloServer.start();
 
-  apolloServer.applyMiddleware({ app: server });
+  apolloServer.applyMiddleware({ app: server, cors: false } );
 
   return server;
 };

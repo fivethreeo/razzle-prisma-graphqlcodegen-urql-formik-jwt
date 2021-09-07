@@ -1,4 +1,7 @@
 import express, { Request, Response } from "express";
+
+import cookieParser from "cookie-parser";
+import cors from "cors";
 import React from "react";
 import { renderToString } from "react-dom/server";
 import { StaticRouter } from "react-router-dom";
@@ -87,10 +90,23 @@ export const renderApp = async (req: Request, res: Response) => {
   return { html, context };
 };
 
+const corsOptionsDelegate = function (req, callback) {
+  let corsOptions = {
+    credentials: true
+  };
+  corsOptions.origin = req.headers.origin;
+  callback(null, corsOptions) // callback expects two parameters: error and options
+}
+
 const createserver = async () => {
 
-  let server = express();
-  
+  let server = express()
+    .use(
+      cors(corsOptionsDelegate)
+    )
+    .options('*', cors(corsOptionsDelegate))
+    .use(cookieParser());
+
   if (addApollo) {
     server = await addApollo(server);
   }
