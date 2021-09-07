@@ -42,6 +42,7 @@ const resolvers: Resolvers = {
         );
         return {
           token,
+          user
         };
       } catch (error) {
         throw new Error(process.env.NODE_ENV === 'development' ? error.message : 'Registration failed' );
