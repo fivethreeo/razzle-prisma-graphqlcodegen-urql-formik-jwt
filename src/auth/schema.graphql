@@ -1,25 +1,27 @@
-
 type User {
-  id      Int      @id
-  name    String?
-  email   String   @unique
-  Post    Post[]
-  Profile Profile?
+  id: Int!
+  username: String
+  email: String!
 }
 
-type Post {
-  id        Int      @id
-  title     String
-  createdAt DateTime @default(now())
-  content   String?
-  published Boolean  @default(false)
-  authorId  Int
-  User      User     @relation(fields: [authorId], references: [id])
+type AuthPayload {
+  token: String!
 }
 
-type Profile {
-  id     Int     @id
-  bio    String?
-  userId Int     @unique
-  User   User    @relation(fields: [userId], references: [id])
+type Query {
+  user(id: Int!): User
+  allUsers: [User!]!
+  me: User
+}
+
+type Mutation {
+
+  registerUser(
+    username: String
+    email: String!
+    password: String!
+  ): AuthPayload!
+
+  login(email: String!, password: String!): AuthPayload!
+
 }

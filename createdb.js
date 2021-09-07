@@ -4,15 +4,16 @@ var db = new sqlite3.Database("./db.sqlite");
 db.serialize(function () {
   db.run(`
   CREATE TABLE User (
-    id SERIAL PRIMARY KEY NOT NULL,
-    name VARCHAR(255),
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    username VARCHAR(255),
+    password VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL
   );
   `);
 
   db.run(`
     CREATE TABLE Post (
-    id SERIAL PRIMARY KEY NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     title VARCHAR(255) NOT NULL,
     createdAt TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
     content TEXT,
@@ -24,7 +25,7 @@ db.serialize(function () {
 
   db.run(`
     CREATE TABLE Profile (
-    id SERIAL PRIMARY KEY NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     bio TEXT,
     userId INTEGER UNIQUE NOT NULL,
     FOREIGN KEY (userId) REFERENCES User(id)

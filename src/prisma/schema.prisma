@@ -3,22 +3,22 @@ generator client {
   output   = "../src/prisma"
 }
 
-
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id      Int      @id
-  name    String?
-  email   String   @unique
-  Post    Post[]
-  Profile Profile?
+  id       Int      @id @default(autoincrement())
+  username String?
+  password String
+  email    String   @unique
+  Post     Post[]
+  Profile  Profile?
 }
 
 model Post {
-  id        Int      @id
+  id        Int      @id @default(autoincrement())
   title     String
   createdAt DateTime @default(now())
   content   String?
@@ -28,7 +28,7 @@ model Post {
 }
 
 model Profile {
-  id     Int     @id
+  id     Int     @id @default(autoincrement())
   bio    String?
   userId Int     @unique
   User   User    @relation(fields: [userId], references: [id])

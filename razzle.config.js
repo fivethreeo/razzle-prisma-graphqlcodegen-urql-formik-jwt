@@ -1,6 +1,6 @@
 "use strict";
-
-const hostparts = (process.env.HOSTNAME||'').match(/(\w+)-\w+-(\w+)/);
+const CopyPlugin = require('copy-webpack-plugin');
+const hostparts = (process.env.HOSTNAME || '').match(/(\w+)-\w+-(\w+)/);
 const publichost = process.env.CODESANDBOX_SSE
   && `${hostparts[2]}.${hostparts[1]}.codesandbox.io`;
 
@@ -20,6 +20,25 @@ module.exports = {
       config.devServer.index = "";
     }
 
+    if (opts.env.target === 'node') {
+      // webpackOptions.startServerOptions.nodeArgs.unshift('-r', 'ts-node/register')
+      config.externals.push({
+        "_http_common": "commonjs2 _http_common",
+        "encoding": "commonjs2 encoding",
+      });
+
+      config.plugins = [
+        ...config.plugins, new CopyPlugin({
+          patterns: [
+            {
+              from: opts.paths.appSrc.replace(/\\/g, '/') + '/prisma/*.prisma',
+              to: opts.paths.appBuild,
+              context: opts.paths.appSrc.replace(/\\/g, '/') + '/prisma',
+            },
+          ]
+        })
+      ]
+    }
     return config;
   },
   modifyWebpackOptions({
@@ -39,7 +58,7 @@ module.exports = {
         publichost
       );
     }
-    if (target === 'node') {
+    if (target === 'node' && dev) {
       // webpackOptions.startServerOptions.nodeArgs.unshift('-r', 'ts-node/register')
       webpackOptions.startServerOptions.signal = 'SIGTERM'
     }
