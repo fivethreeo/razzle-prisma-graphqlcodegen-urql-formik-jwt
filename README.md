@@ -25,6 +25,11 @@ yarn start
 sed -ie 's/sqlite/postgresql/g' prisma/schema.prisma
 DATABASE_URL=file:../db.sqlite node_modules/.bin/prisma generate
 yarn build
+pushd ../typegraphql-prisma
+yarn link
+popd
+yarn link typegraphql-prisma
+chmod u+x node_modules/.bin/typegraphql-prisma
 ```
 
 ## Idea behind the example

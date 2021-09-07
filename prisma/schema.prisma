@@ -3,6 +3,11 @@ generator client {
   output   = "../src/prisma"
 }
 
+generator typegraphql {
+  provider = "typegraphql-prisma"
+  output = "../src/type-graphql"
+}
+
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
