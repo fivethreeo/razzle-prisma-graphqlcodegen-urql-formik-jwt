@@ -5,6 +5,15 @@ import cors from "cors";
 import React from "react";
 import { renderToString } from "react-dom/server";
 import { StaticRouter } from "react-router-dom";
+import ssrPrepass from "react-ssr-prepass";
+import {
+  createClient,
+  dedupExchange,
+  cacheExchange,
+  fetchExchange,
+  ssrExchange,
+} from "@urql/core";
+import { Provider } from "urql";
 import addApollo from "./apollo";
 
 import App from "./App";
@@ -59,12 +68,41 @@ export const renderApp = async (req: Request, res: Response) => {
       ? `https://${CODESANDBOX_HOST}/`
       : "http://localhost:3001/";
 
+  const isServerSide = typeof window === "undefined";
+
+  // The `ssrExchange` must be initialized with `isClient` and `initialState`
+  const ssr = ssrExchange({
+    isClient: !isServerSide,
+    initialState: !isServerSide ? window.__URQL_DATA__ : undefined,
+  });
+
+  const client = createClient({
+    url: "http://localhost:3000/graphql",
+    exchanges: [
+      dedupExchange,
+      cacheExchange,
+      ssr, // Add `ssr` in front of the `fetchExchange`
+      fetchExchange,
+    ],
+  });
+
   const context: STATIC_CONTEXT = {};
-  const markup = renderToString(
-    <StaticRouter location={req.url} context={context}>
-      <App />
-    </StaticRouter>
+
+  const PrepassedApp = (
+    <Provider value={client}>
+      <StaticRouter location={req.url} context={context}>
+        <App />
+      </StaticRouter>
+    </Provider>
   );
+
+  await ssrPrepass(PrepassedApp);
+
+  const markup = renderToString(PrepassedApp);
+  
+  // Extract and serialise the data like so from the `ssr` instance
+  // we've previously created by calling `ssrExchange()`
+  const data = JSON.stringify(ssr.extractData());
 
   const html =
     // prettier-ignore
@@ -77,6 +115,7 @@ export const renderApp = async (req: Request, res: Response) => {
           <meta name="viewport" content="width=device-width, initial-scale=1">
           <script type="text/javascript">
             window.PUBLIC_PATH = '${public_path}';
+            window.__URQL_DATA__ = JSON.parse(${data});
           </script>
           ${cssLinksFromAssets(public_path, assets, 'client')}            
       </head>
@@ -92,19 +131,16 @@ export const renderApp = async (req: Request, res: Response) => {
 
 const corsOptionsDelegate = function (req, callback) {
   let corsOptions = {
-    credentials: true
+    credentials: true,
   };
   corsOptions.origin = req.headers.origin;
-  callback(null, corsOptions) // callback expects two parameters: error and options
-}
+  callback(null, corsOptions); // callback expects two parameters: error and options
+};
 
 const createserver = async () => {
-
   let server = express()
-    .use(
-      cors(corsOptionsDelegate)
-    )
-    .options('*', cors(corsOptionsDelegate))
+    .use(cors(corsOptionsDelegate))
+    .options("*", cors(corsOptionsDelegate))
     .use(cookieParser());
 
   if (addApollo) {
