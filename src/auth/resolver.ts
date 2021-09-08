@@ -59,20 +59,31 @@ const resolvers: Resolvers = {
           throw new Error(process.env.NODE_ENV === 'development' ? "Incorrect password" : 'Login failed' );
         }
         // return jwt
-        const token = sign(
-          { id: user.id, email: user.email },
+        const accessToken = sign(
+          { id: user.id },
           process.env.JWT_SECRET,
-          { expiresIn: "1d" }
+          { expiresIn: "15m" }
         );
         
-        res.cookie("access_token", token, {
+        const refreshToken = sign(
+          { id: user.id },
+          process.env.JWT_REFRESH_SECRET,
+          { expiresIn: "7d" }
+        );
+
+        res.cookie("access_token", accessToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+        })
+        
+        res.cookie("refresh_token", refreshToken, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
         })
 
         return {
-          token,
-          user,
+          accessToken,
+          refreshToken
         };
       } catch (error) {
         throw new Error(error.message);

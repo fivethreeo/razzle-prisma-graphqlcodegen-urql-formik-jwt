@@ -5,8 +5,8 @@ type User {
 }
 
 type AuthPayload {
-  token: String!
-  user: User!
+  accessToken: String!
+  refreshToken: String!
 }
 
 type Query {
@@ -24,5 +24,9 @@ type Mutation {
   ): AuthPayload!
 
   login(email: String!, password: String!): AuthPayload!
+
+  refreshTokens (
+    refreshToken: String!
+  ): AuthPayload!
 
 }
