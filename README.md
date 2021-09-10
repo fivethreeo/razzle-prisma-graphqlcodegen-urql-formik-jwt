@@ -1,11 +1,12 @@
-# Razzle Basic Example
+# Razzle Typescript Graphql Example With Prisma and JWT Auth
 
 ## How to use
-Download the example [or clone the whole project](https://github.com/jaredpalmer/razzle.git):
+Download the example [or clone it](https://github.com/fivethreeo/razzle-prisma-graphqlcodegen-urql-formik-jwt.git):
 
 ```bash
-curl https://codeload.github.com/jaredpalmer/razzle/tar.gz/master | tar -xz --strip=2 razzle-master/examples/basic
-cd basic
+curl https://codeload.github.com/fivethreeo/razzle-prisma-graphqlcodegen-urql-formik-jwt/tar.gz/main | tar -xz razzle-prisma-graphqlcodegen-urql-formik-jwt-main
+mv razzle-prisma-graphqlcodegen-urql-formik-jwt-main example
+cd example
 ```
 
 Install it and run:

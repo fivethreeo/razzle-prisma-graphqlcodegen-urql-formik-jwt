@@ -16,12 +16,12 @@ interface Tokens {
   refreshToken?: string;
 }
 
-export const getTokens = (
-  user: PayloadUser | UserModel,
-  reuseRefreshToken?: string
-): Tokens => {
-  const sevenDays = 60 * 60 * 24 * 7 * 1000;
-  const fifteenMins = 60 * 15 * 1000;
+const sevenDays = 60 * 60 * 24 * 7 * 1000;
+const fifteenMins = 60 * 15 * 1000;
+
+export const getAccessToken = (
+  user: PayloadUser | UserModel
+): string => {
   const accessUser = {
     id: user.id,
   };
@@ -29,17 +29,29 @@ export const getTokens = (
     expiresIn: fifteenMins,
   });
 
+  return accessToken;
+};
+
+
+export const getRefreshToken = (
+  user: PayloadUser | UserModel
+): string => {
+
   const refreshUser = {
     id: user.id,
   };
 
-  const refreshToken =
-    reuseRefreshToken ||
-    sign({ user: refreshUser }, process.env.JWT_REFRESH_SECRET, {
+  const refreshToken = sign({ user: refreshUser }, process.env.JWT_REFRESH_SECRET, {
       expiresIn: sevenDays,
     });
 
-  return { accessToken, refreshToken };
+  return refreshToken;
+};
+
+export const getTokens = (
+  user: PayloadUser | UserModel
+): Tokens => {
+  return { accessToken: getAccessToken(user), refreshToken: getRefreshToken(user) };
 };
 
 export const verifyAccessToken = (token): UserJwtPayload => {
@@ -102,8 +114,7 @@ export const refreshCookieTokens = async (
   const refreshToken = getRefreshTokenFromReq(req);
   const tokens = await refreshTokens(refreshToken, prisma);
   if (tokens) {
-    setCookieTokens(tokens, res, refreshOnly);
-    return refreshOnly ? { accessToken: tokens.accessToken } : tokens;
+    return setCookieTokens(tokens, res, refreshOnly);
   }
   return null;
 };
@@ -112,7 +123,7 @@ export const setCookieTokens = (
   tokens: Tokens,
   res: Response,
   refreshOnly: boolean
-): void => {
+): Tokens => {
   if (!refreshOnly) {
     res.cookie("access_token", tokens.accessToken, {
       path: process.env.JWT_COOKIE_PATH || "/",
@@ -127,6 +138,7 @@ export const setCookieTokens = (
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
   });
+  return refreshOnly ? { accessToken: tokens.accessToken } : tokens;
 };
 
 export const clearCookieTokens = (
