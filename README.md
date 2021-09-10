@@ -4,8 +4,8 @@
 Download the example [or clone it](https://github.com/fivethreeo/razzle-prisma-graphqlcodegen-urql-formik-jwt.git):
 
 ```bash
-curl https://codeload.github.com/fivethreeo/razzle-prisma-graphqlcodegen-urql-formik-jwt/tar.gz/main | tar -xz razzle-prisma-graphqlcodegen-urql-formik-jwt-main
-mv razzle-prisma-graphqlcodegen-urql-formik-jwt-main example
+mkdir example
+curl https://codeload.github.com/fivethreeo/razzle-prisma-graphqlcodegen-urql-formik-jwt/tar.gz/main | tar -xz --strip-components=1 -C example 
 cd example
 ```
 
