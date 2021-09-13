@@ -8,9 +8,9 @@ interface Tokens {
 
 export interface PayloadHandlers<T extends JwtPayload, U extends JwtPayload> {
   verifyRefresh: (token: string, payload: U) => Promise<boolean>;
-  storeRefreshToken: (token: string) => Promise<boolean>;
-  createRefreshPayload: (payload?: U | null) => Promise<U>;
-  createAccessPayload: (refreshPayload?: U | null) => Promise<T>;
+  storeRefreshToken: (refreshPayload: U, token: string) => Promise<boolean>;
+  createRefreshPayload: (prevRefreshPayload?: U) => Promise<U>;
+  createAccessPayload: (refreshPayload: U) => Promise<T>;
 }
 
 const sevenDays = 60 * 60 * 24 * 7 * 1000;
@@ -46,14 +46,14 @@ export const getRefreshToken = async <T extends JwtPayload, U extends JwtPayload
     }
   );
 
-  await handlers.storeRefreshToken(refreshToken);
+  await handlers.storeRefreshToken(refreshPayload,refreshToken);
 
   return { refreshToken, refreshPayload };
 };
 
 export const getTokens = async <T extends JwtPayload, U extends JwtPayload>(
   handlers: PayloadHandlers<T, U>,
-  prevRefreshPayload: U | null
+  prevRefreshPayload?: U 
 ): Promise<Tokens> => {
   const { refreshToken, refreshPayload } = await getRefreshToken(handlers, prevRefreshPayload);
   return {
