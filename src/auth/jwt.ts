@@ -6,14 +6,10 @@ interface Tokens {
   refreshToken?: string;
 }
 
-interface RefreshContext<T extends JwtPayload>{
-  payload: T;
-}
-
-export interface PayloadHandlers<T extends JwtPayload, U extends JwtPayload, V extends RefreshContext<U>> {
+export interface PayloadHandlers<T extends JwtPayload, U extends JwtPayload> {
   verifyRefresh: (token: string, payload: U) => Promise<boolean>;
   storeRefreshToken: (token: string) => Promise<boolean>;
-  createRefreshContext: (refreshPayload?: U | null) => Promise<V>;
+  createRefreshPayload: (payload?: U | null) => Promise<U>;
   createAccessPayload: (refreshPayload?: U | null) => Promise<T>;
 }
 
@@ -40,7 +36,7 @@ export const getRefreshToken = async <T extends JwtPayload, U extends JwtPayload
   prevPayload: U | null
 ): Promise<{ refreshToken?: string, refreshPayload: U}> => {
 
-  const refreshPayload = await handlers.createRefreshContext(prevPayload)
+  const refreshPayload = await handlers.createRefreshPayload(prevPayload)
 
   const refreshToken = sign(
     refreshPayload,
