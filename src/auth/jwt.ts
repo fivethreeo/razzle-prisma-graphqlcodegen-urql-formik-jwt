@@ -1,70 +1,82 @@
 import { JwtPayload, sign, verify } from "jsonwebtoken";
-import { User as UserModel } from "../prisma/index.d";
 import { Request, Response } from "express";
-import { PrismaClient } from "../prisma/index.d";
-
-interface PayloadUser {
-  id: number;
-}
-
-interface UserJwtPayload extends JwtPayload {
-  user: PayloadUser;
-}
 
 interface Tokens {
-  accessToken: string;
+  accessToken?: string;
   refreshToken?: string;
+}
+
+interface RefreshContext<T extends JwtPayload>{
+  payload: T;
+}
+
+export interface PayloadHandlers<T extends JwtPayload, U extends JwtPayload, V extends RefreshContext<U>> {
+  verifyRefresh: (token: string, payload: U) => Promise<boolean>;
+  storeRefreshToken: (token: string) => Promise<boolean>;
+  createRefreshContext: (refreshPayload?: U | null) => Promise<V>;
+  createAccessPayload: (refreshPayload?: U | null) => Promise<T>;
 }
 
 const sevenDays = 60 * 60 * 24 * 7 * 1000;
 const fifteenMins = 60 * 15 * 1000;
 
-export const getAccessToken = (
-  user: PayloadUser | UserModel
-): string => {
-  const accessUser = {
-    id: user.id,
-  };
-  const accessToken = sign({ user: accessUser }, process.env.JWT_SECRET, {
-    expiresIn: fifteenMins,
-  });
+export const getAccessToken = async <T extends JwtPayload, U extends JwtPayload> (
+  handlers: PayloadHandlers<T, U>,
+  refreshPayload: U | null
+): Promise<string> => {
+  const accessToken = sign(
+    handlers.createAccessPayload(refreshPayload),
+    process.env.JWT_SECRET,
+    {
+      expiresIn: fifteenMins,
+    }
+  );
 
   return accessToken;
 };
 
+export const getRefreshToken = async <T extends JwtPayload, U extends JwtPayload>(
+  handlers: PayloadHandlers<T, U>,
+  prevPayload: U | null
+): Promise<{ refreshToken?: string, refreshPayload: U}> => {
 
-export const getRefreshToken = (
-  user: PayloadUser | UserModel
-): string => {
+  const refreshPayload = await handlers.createRefreshContext(prevPayload)
 
-  const refreshUser = {
-    id: user.id,
-  };
-
-  const refreshToken = sign({ user: refreshUser }, process.env.JWT_REFRESH_SECRET, {
+  const refreshToken = sign(
+    refreshPayload,
+    process.env.JWT_REFRESH_SECRET,
+    {
       expiresIn: sevenDays,
-    });
+    }
+  );
 
-  return refreshToken;
+  await handlers.storeRefreshToken(refreshToken);
+
+  return { refreshToken, refreshPayload };
 };
 
-export const getTokens = (
-  user: PayloadUser | UserModel
-): Tokens => {
-  return { accessToken: getAccessToken(user), refreshToken: getRefreshToken(user) };
+export const getTokens = async <T extends JwtPayload, U extends JwtPayload>(
+  handlers: PayloadHandlers<T, U>,
+  prevRefreshPayload: U | null
+): Promise<Tokens> => {
+  const { refreshToken, refreshPayload } = await getRefreshToken(handlers, prevRefreshPayload);
+  return {
+    accessToken: await getAccessToken(handlers, refreshPayload),
+    refreshToken
+  };
 };
 
-export const verifyAccessToken = (token): UserJwtPayload => {
+export const verifyAccessToken = <T extends JwtPayload>(token: string): T | null => {
   try {
-    return <UserJwtPayload>verify(token, process.env.JWT_SECRET);
+    return <T>verify(token, process.env.JWT_SECRET);
   } catch {
     return null;
   }
 };
 
-export const verifyRefreshToken = (token): UserJwtPayload => {
+export const verifyRefreshToken = <T extends JwtPayload>(token: string): T | null => {
   try {
-    return <UserJwtPayload>verify(token, process.env.JWT_REFRESH_SECRET);
+    return <T>verify(token, process.env.JWT_REFRESH_SECRET);
   } catch {
     return null;
   }
@@ -82,49 +94,40 @@ export const getRefreshTokenFromReq = (req: Request): string | undefined => {
   return req.cookies.refresh_token || req.headers["x-refresh-token"];
 };
 
-export const refreshTokens = async (
-  refreshToken: string | undefined,
-  prisma: PrismaClient
+export const refreshTokens = async <T extends JwtPayload, U extends JwtPayload>(
+  handlers: PayloadHandlers<T, U>,
+  refreshToken: string | undefined
 ): Promise<Tokens | null> => {
   if (!refreshToken) return null;
-  /* 
-  const rejectedToken = await prisma.rejectedtokens.findOne({
-    where: { token: refreshToken },
-  });
-  if (rejectedToken) return null;
- */
-  const decodedRefreshToken = verifyRefreshToken(refreshToken);
-  if (decodedRefreshToken && decodedRefreshToken.user) {
-    const user = await prisma.user.findFirst({
-      where: { id: decodedRefreshToken.user.id },
-    });
-    if (!user) return null;
-
-    return getTokens(user);
+  const decodedRefreshToken = verifyRefreshToken<U>(refreshToken);
+  if (decodedRefreshToken) {
+    const verifiedRefreshPayload = await handlers.verifyRefresh(
+      refreshToken, decodedRefreshToken
+    );
+    return verifiedRefreshPayload ? getTokens<T, U>(handlers, decodedRefreshToken) : null;
   }
   return null;
 };
 
-export const refreshCookieTokens = async (
+export const refreshCookieTokens = async <T extends JwtPayload, U extends JwtPayload> (
+  handlers: PayloadHandlers<T, U>,
   req: Request,
   res: Response,
-  prisma: PrismaClient,
   refreshOnly: boolean
 ): Promise<Tokens | null> => {
   const refreshToken = getRefreshTokenFromReq(req);
-  const tokens = await refreshTokens(refreshToken, prisma);
+  const tokens = await refreshTokens(handlers, refreshToken);
   if (tokens) {
-    return setCookieTokens(tokens, res, refreshOnly);
+    return setCookieTokens(
+      refreshOnly ? { refreshToken: tokens.refreshToken } : tokens,
+      res
+    );
   }
-  return null;
+  return tokens;
 };
 
-export const setCookieTokens = (
-  tokens: Tokens,
-  res: Response,
-  refreshOnly: boolean
-): Tokens => {
-  if (!refreshOnly) {
+export const setCookieTokens = (tokens: Tokens, res: Response): Tokens => {
+  if (tokens.accessToken) {
     res.cookie("access_token", tokens.accessToken, {
       path: process.env.JWT_COOKIE_PATH || "/",
       domain: process.env.JWT_COOKIE_DOMAIN || "localhost",
@@ -132,30 +135,27 @@ export const setCookieTokens = (
       secure: process.env.NODE_ENV === "production",
     });
   }
-  res.cookie("refresh_token", tokens.refreshToken, {
+  if (tokens.refreshToken) {
+    res.cookie("refresh_token", tokens.refreshToken, {
+      path: process.env.JWT_REFRESH_COOKIE_PATH || "/",
+      domain: process.env.JWT_REFRESH_COOKIE_DOMAIN || "localhost",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
+  return tokens;
+};
+
+export const clearCookieTokens = (res: Response): void => {
+  res.clearCookie("access_token", {
     path: process.env.JWT_COOKIE_PATH || "/",
     domain: process.env.JWT_COOKIE_DOMAIN || "localhost",
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
   });
-  return refreshOnly ? { accessToken: tokens.accessToken } : tokens;
-};
-
-export const clearCookieTokens = (
-  res: Response,
-  refreshOnly: boolean
-): void => {
-  if (!refreshOnly) {
-    res.clearCookie("access_token", {
-      path: process.env.JWT_COOKIE_PATH || "/",
-      domain: process.env.JWT_COOKIE_DOMAIN || "localhost",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    });
-  }
   res.clearCookie("refresh_token", {
-    path: process.env.JWT_COOKIE_PATH || "/",
-    domain: process.env.JWT_COOKIE_DOMAIN || "localhost",
+    path: process.env.JWT_REFRESH_COOKIE_PATH || "/",
+    domain: process.env.JWT_REFRESH_COOKIE_DOMAIN || "localhost",
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
   });

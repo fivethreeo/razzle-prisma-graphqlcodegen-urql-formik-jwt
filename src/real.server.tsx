@@ -17,6 +17,7 @@ import { Provider } from "urql";
 import addApollo from "./apollo";
 
 import App from "./App";
+import { PrismaClient } from "./prisma";
 
 type STATIC_CONTEXT = {
   statusCode?: number;
@@ -129,22 +130,26 @@ export const renderApp = async (req: Request, res: Response) => {
   return { html, context };
 };
 
-const corsOptionsDelegate = function (req, callback) {
-  let corsOptions = {
-    credentials: true,
-  };
-  corsOptions.origin = req.headers.origin;
-  callback(null, corsOptions); // callback expects two parameters: error and options
-};
-
 const createserver = async () => {
+
+  const prisma = new PrismaClient();
+
+  const corsOptionsDelegate = function (req, callback) {
+    let corsOptions = {
+      credentials: true,
+    };
+    corsOptions.origin = req.headers.origin;
+    callback(null, corsOptions); // callback expects two parameters: error and options
+  };
+
   let server = express()
     .use(cors(corsOptionsDelegate))
     .options("*", cors(corsOptionsDelegate))
     .use(cookieParser());
 
+
   if (addApollo) {
-    server = await addApollo(server);
+    server = await addApollo(server, prisma);
   }
 
   server = server

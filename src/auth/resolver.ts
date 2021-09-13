@@ -1,14 +1,15 @@
 import { sign } from "jsonwebtoken";
 import { hash, compare} from "bcryptjs";
 import { Resolvers } from "../types/resolvers-types";
+import { getTokens, setCookieTokens } from "./jwt";
 
 const resolvers: Resolvers = {
   Query: {
-    async me(_, _args, { prisma, user }) {
+    async me(_, _args, { prisma, auth }) {
       if (!user) throw new Error("You are not authenticated");
       return await prisma.user.findFirst({ where: { id: user.id }});
     },
-    async user(_parent, { id }, { prisma, user }) {
+    async user(_parent, { id }, { prisma, auth }) {
       try {
         if (!user) throw new Error("You are not authenticated!");
         return await prisma.user.findFirst({ where: { id: id }});
@@ -16,7 +17,7 @@ const resolvers: Resolvers = {
         throw new Error(error.message);
       }
     },
-    async allUsers(_parent, _args, { prisma, user }) {
+    async allUsers(_parent, _args, { prisma, auth }) {
       try {
         if (!user) throw new Error("You are not authenticated!");
         return prisma.user.findMany();
@@ -26,7 +27,7 @@ const resolvers: Resolvers = {
     },
   },
   Mutation: {
-    async registerUser(_parent, { username, email, password }, { prisma }) {
+    async registerUser(_parent, { username, email, password }, { prisma, res }) {
       try {
         const user = await prisma.user.create({
           data: {
@@ -35,15 +36,13 @@ const resolvers: Resolvers = {
             password: await hash(password, 10),
           },
         });
-        const token = sign(
-          { id: user.id, email: user.email },
-          process.env.JWT_SECRET,
-          { expiresIn: "1y" }
-        );
-        return {
-          token,
-          user
-        };
+        const tokens = getTokens(user);
+        if (process.env.JWT_COOKIE_TOKENS || process.env.JWT_REFRESH_COOKIE_TOKEN_ONLY) {
+        return setCookieTokens(tokens, res, !!process.env.JWT_REFRESH_COOKIE_TOKEN_ONLY)
+        }
+        else {
+          return tokens
+        }
       } catch (error) {
         throw new Error(process.env.NODE_ENV === 'development' ? error.message : 'Registration failed' );
       }
@@ -58,28 +57,20 @@ const resolvers: Resolvers = {
         if (!isValid) {
           throw new Error(process.env.NODE_ENV === 'development' ? "Incorrect password" : 'Login failed' );
         }
-        // return jwt
-        const accessToken = sign(
-          { id: user.id },
-          process.env.JWT_SECRET,
-          { expiresIn: "15m" }
-        );
-        
-        const refreshToken = sign(
-          { id: user.id },
-          process.env.JWT_REFRESH_SECRET,
-          { expiresIn: "7d" }
-        );
 
-        res.cookie("access_token", accessToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-        })
-        
-        res.cookie("refresh_token", refreshToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-        })
+        const userToken = await prisma.usertoken.findFirst({ where: { userId: user.id } });
+
+        return {
+          accessToken,
+          refreshToken
+        };
+      } catch (error) {
+        throw new Error(error.message);
+      }
+    },
+    async refreshTokens(_, { refreshToken }, { prisma, res }) {
+      try {
+        const userToken = await prisma.usertoken.findFirst({ where: { userId: user.id } });
 
         return {
           accessToken,
