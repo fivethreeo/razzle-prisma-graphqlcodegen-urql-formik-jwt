@@ -27,7 +27,6 @@ const addApollo = async (server: Express, prisma: PrismaClient) => {
     schema: schemaWithResolvers,
     context: ({ req, res }) => {
       const token = getAccessTokenFromReq(req);
-      console.log(token)
       return { req, res, prisma, auth: verifyAccessToken<AccessJwtPayload>(token) };
     },
   });
