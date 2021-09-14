@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 
 import cookieParser from "cookie-parser";
-import cors from "cors";
+import cors, { CorsOptions, CorsOptionsDelegate } from "cors";
 import React from "react";
 import { renderToString } from "react-dom/server";
 import { StaticRouter } from "react-router-dom";
@@ -128,15 +128,18 @@ export const renderApp = async (req: Request, res: Response) => {
   return { html, context };
 };
 
-
+// let origins = [];
 const prisma = new PrismaClient();
 const server = express();
 
 const createserver = async () => {
+/* 
+  if (!origins) {
+    origins = (await prisma.alloworigins.findMany()).map(o=>o.origin)
+  } */
 
-
-  const corsOptionsDelegate = function (req, callback) {
-    let corsOptions = {
+  const corsOptionsDelegate: CorsOptionsDelegate = function (req, callback) {
+    let corsOptions: CorsOptions = {
       credentials: true,
     };
     corsOptions.origin = req.headers.origin;

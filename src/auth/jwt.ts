@@ -3,13 +3,16 @@ import { Request, Response } from "express";
 import { prisma } from "../prisma";
 
 interface Tokens {
-  accessToken?: string;
-  refreshToken?: string;
+  accessToken: string | null;
+  refreshToken: string | null;
 }
 
 export interface PayloadHandlers<T extends JwtPayload, U extends JwtPayload> {
   verifyRefresh: (refreshToken: string, refreshPayload: U) => Promise<boolean>;
-  storeRefreshToken: (refreshToken: string, refreshPayload: U) => Promise<boolean>;
+  storeRefreshToken: (
+    refreshToken: string,
+    refreshPayload: U
+  ) => Promise<boolean>;
   createRefreshPayload: (prevRefreshPayload?: U) => Promise<U>;
   createAccessPayload: (refreshPayload: U) => Promise<T>;
 }
@@ -17,56 +20,63 @@ export interface PayloadHandlers<T extends JwtPayload, U extends JwtPayload> {
 const sevenDays = 60 * 60 * 24 * 7 * 1000;
 const fifteenMins = 60 * 15 * 1000;
 
-export const getAccessToken = async <T extends JwtPayload, U extends JwtPayload> (
+export const getAccessToken = async <
+  T extends JwtPayload,
+  U extends JwtPayload
+>(
   handlers: PayloadHandlers<T, U>,
   refreshPayload: U | null
 ): Promise<string> => {
-  
-  const accessPayload = await handlers.createAccessPayload(refreshPayload)
+  const accessPayload = await handlers.createAccessPayload(refreshPayload);
 
-  const accessToken = sign(
-    accessPayload,
-    process.env.JWT_SECRET,
-    {
-      expiresIn: fifteenMins,
-    }
-  );
+  const accessToken = sign(accessPayload, process.env.JWT_SECRET, {
+    expiresIn: fifteenMins,
+  });
 
   return accessToken;
 };
 
-export const getRefreshToken = async <T extends JwtPayload, U extends JwtPayload>(
+export const getRefreshToken = async <
+  T extends JwtPayload,
+  U extends JwtPayload
+>(
   handlers: PayloadHandlers<T, U>,
   prevRefreshPayload: U | null
-): Promise<{ refreshToken?: string, refreshPayload: U}> => {
+): Promise<{ refreshToken: string | null; refreshPayload: U }> => {
+  if (false) {
+    return { refreshToken: null, refreshPayload: prevRefreshPayload };
+  } else {
+    const refreshPayload = await handlers.createRefreshPayload(
+      prevRefreshPayload
+    );
 
-  const refreshPayload = await handlers.createRefreshPayload(prevRefreshPayload)
-
-  const refreshToken = sign(
-    refreshPayload,
-    process.env.JWT_REFRESH_SECRET,
-    {
+    const refreshToken = sign(refreshPayload, process.env.JWT_REFRESH_SECRET, {
       expiresIn: sevenDays,
-    }
-  );
+    });
 
-  await handlers.storeRefreshToken(refreshToken, refreshPayload);
+    await handlers.storeRefreshToken(refreshToken, refreshPayload);
 
-  return { refreshToken, refreshPayload };
+    return { refreshToken, refreshPayload };
+  }
 };
 
 export const getTokens = async <T extends JwtPayload, U extends JwtPayload>(
   handlers: PayloadHandlers<T, U>,
-  prevRefreshPayload?: U 
+  prevRefreshPayload?: U
 ): Promise<Tokens> => {
-  const { refreshToken, refreshPayload } = await getRefreshToken(handlers, prevRefreshPayload);
+  const { refreshToken, refreshPayload } = await getRefreshToken(
+    handlers,
+    prevRefreshPayload
+  );
   return {
     accessToken: await getAccessToken(handlers, refreshPayload),
-    ...(refreshToken && { refreshToken })
+    refreshToken,
   };
 };
 
-export const verifyAccessToken = <T extends JwtPayload>(token: string): T | null => {
+export const verifyAccessToken = <T extends JwtPayload>(
+  token: string
+): T | null => {
   try {
     return <T>verify(token, process.env.JWT_SECRET);
   } catch {
@@ -74,7 +84,9 @@ export const verifyAccessToken = <T extends JwtPayload>(token: string): T | null
   }
 };
 
-export const verifyRefreshToken = <T extends JwtPayload>(token: string): T | null => {
+export const verifyRefreshToken = <T extends JwtPayload>(
+  token: string
+): T | null => {
   try {
     return <T>verify(token, process.env.JWT_REFRESH_SECRET);
   } catch {
@@ -86,7 +98,7 @@ export const getAccessTokenFromReq = (req: Request): string | undefined => {
   return (
     req.cookies.access_token ||
     req.headers["x-access-token"] ||
-    (req.get("Authorization")||'').replace("Bearer ", "")
+    (req.get("Authorization") || "").replace("Bearer ", "")
   );
 };
 
@@ -97,29 +109,35 @@ export const getRefreshTokenFromReq = (req: Request): string | undefined => {
 export const refreshTokens = async <T extends JwtPayload, U extends JwtPayload>(
   handlers: PayloadHandlers<T, U>,
   refreshToken: string | undefined
-): Promise<Tokens | null> => {
-  if (!refreshToken) return null;
+): Promise<Tokens> => {
+  if (!refreshToken) return { refreshToken: null, accessToken: null};
   const decodedRefreshToken = verifyRefreshToken<U>(refreshToken);
   if (decodedRefreshToken) {
     const verifiedRefreshPayload = await handlers.verifyRefresh(
-      refreshToken, decodedRefreshToken
+      refreshToken,
+      decodedRefreshToken
     );
-    return verifiedRefreshPayload ? getTokens<T, U>(handlers, decodedRefreshToken) : null;
+    return verifiedRefreshPayload
+      ? await getTokens<T, U>(handlers, decodedRefreshToken)
+      : { refreshToken: null, accessToken: null};
   }
-  return null;
+  return { refreshToken: null, accessToken: null};
 };
 
-export const refreshCookieTokens = async <T extends JwtPayload, U extends JwtPayload> (
+export const refreshCookieTokens = async <
+  T extends JwtPayload,
+  U extends JwtPayload
+>(
   handlers: PayloadHandlers<T, U>,
   req: Request,
   res: Response,
   refreshOnly: boolean
-): Promise<Tokens | null> => {
+): Promise<Tokens> => {
   const refreshToken = getRefreshTokenFromReq(req);
   const tokens = await refreshTokens(handlers, refreshToken);
   if (tokens) {
     return setCookieTokens(
-      refreshOnly ? { refreshToken: tokens.refreshToken } : tokens,
+      refreshOnly ? { refreshToken: tokens.refreshToken, accessToken: null } : tokens,
       res
     );
   }
