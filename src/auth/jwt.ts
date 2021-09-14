@@ -129,16 +129,16 @@ export const refreshCookieTokens = async <T extends JwtPayload, U extends JwtPay
 export const setCookieTokens = (tokens: Tokens, res: Response): Tokens => {
   if (tokens.accessToken) {
     res.cookie("access_token", tokens.accessToken, {
-      // path: process.env.JWT_COOKIE_PATH || "/",
-      // domain: process.env.JWT_COOKIE_DOMAIN || "localhost",
+      path: process.env.JWT_COOKIE_PATH || "/",
+      domain: process.env.JWT_COOKIE_DOMAIN || "localhost",
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
     });
   }
   if (tokens.refreshToken) {
     res.cookie("refresh_token", tokens.refreshToken, {
-      // path: process.env.JWT_REFRESH_COOKIE_PATH || "/",
-      // domain: process.env.JWT_REFRESH_COOKIE_DOMAIN || "localhost",
+      path: process.env.JWT_REFRESH_COOKIE_PATH || "/",
+      domain: process.env.JWT_REFRESH_COOKIE_DOMAIN || "localhost",
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
     });

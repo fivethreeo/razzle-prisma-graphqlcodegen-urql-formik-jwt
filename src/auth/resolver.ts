@@ -37,7 +37,7 @@ const resolvers: Resolvers = {
           },
         });
         const tokens = await getTokens(getPayloadHandlers(prisma, user));
-        return <AuthPayload>setCookieTokens(tokens, res)
+        return <AuthPayload>{ success: true, ...setCookieTokens(tokens, res)}
       } catch (error) {
         throw new Error(process.env.NODE_ENV === 'development' ? error.message : 'Registration failed' );
       }
@@ -54,7 +54,7 @@ const resolvers: Resolvers = {
         }
 
         const tokens = await getTokens(getPayloadHandlers(prisma, user));
-        return <AuthPayload>setCookieTokens(tokens, res)
+        return <AuthPayload>{ success: true, ...setCookieTokens(tokens, res)}
       } catch (error) {
         throw new Error(error.message);
       }
@@ -62,7 +62,7 @@ const resolvers: Resolvers = {
     async refreshTokens(_, { refreshToken }, { prisma, req, res }) {
       try {
         const tokens = await refreshCookieTokens(getPayloadHandlers(prisma), req, res, false);
-        return <AuthPayload>tokens
+        return <AuthPayload>{ success: true, ...tokens}
       } catch (error) {
         throw new Error(error.message);
       }
