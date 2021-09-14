@@ -25,6 +25,7 @@ yarn add -D @app/gql@link:./src/gql
 rm db.sqlite
 node createdb.js
 DATABASE_URL=file:../db.sqlite JWT_SECRET=secret JWT_REFRESH_SECRET=secret yarn start
+# Graphql at http://localhost:3000/graphql
 
 # run a prod build with sqlite
 rm db.sqlite
