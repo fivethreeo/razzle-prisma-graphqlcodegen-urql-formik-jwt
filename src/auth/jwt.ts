@@ -1,5 +1,6 @@
 import { JwtPayload, sign, verify } from "jsonwebtoken";
 import { Request, Response } from "express";
+import { prisma } from "../prisma";
 
 interface Tokens {
   accessToken?: string;
@@ -7,8 +8,8 @@ interface Tokens {
 }
 
 export interface PayloadHandlers<T extends JwtPayload, U extends JwtPayload> {
-  verifyRefresh: (token: string, payload: U) => Promise<boolean>;
-  storeRefreshToken: (refreshPayload: U, token: string) => Promise<boolean>;
+  verifyRefresh: (refreshToken: string, refreshPayload: U) => Promise<boolean>;
+  storeRefreshToken: (refreshToken: string, refreshPayload: U) => Promise<boolean>;
   createRefreshPayload: (prevRefreshPayload?: U) => Promise<U>;
   createAccessPayload: (refreshPayload: U) => Promise<T>;
 }
@@ -20,8 +21,11 @@ export const getAccessToken = async <T extends JwtPayload, U extends JwtPayload>
   handlers: PayloadHandlers<T, U>,
   refreshPayload: U | null
 ): Promise<string> => {
+  
+  const accessPayload = await handlers.createAccessPayload(refreshPayload)
+
   const accessToken = sign(
-    handlers.createAccessPayload(refreshPayload),
+    accessPayload,
     process.env.JWT_SECRET,
     {
       expiresIn: fifteenMins,
@@ -33,10 +37,10 @@ export const getAccessToken = async <T extends JwtPayload, U extends JwtPayload>
 
 export const getRefreshToken = async <T extends JwtPayload, U extends JwtPayload>(
   handlers: PayloadHandlers<T, U>,
-  prevPayload: U | null
+  prevRefreshPayload: U | null
 ): Promise<{ refreshToken?: string, refreshPayload: U}> => {
 
-  const refreshPayload = await handlers.createRefreshPayload(prevPayload)
+  const refreshPayload = await handlers.createRefreshPayload(prevRefreshPayload)
 
   const refreshToken = sign(
     refreshPayload,
@@ -46,7 +50,7 @@ export const getRefreshToken = async <T extends JwtPayload, U extends JwtPayload
     }
   );
 
-  await handlers.storeRefreshToken(refreshPayload,refreshToken);
+  await handlers.storeRefreshToken(refreshToken, refreshPayload);
 
   return { refreshToken, refreshPayload };
 };
@@ -58,7 +62,7 @@ export const getTokens = async <T extends JwtPayload, U extends JwtPayload>(
   const { refreshToken, refreshPayload } = await getRefreshToken(handlers, prevRefreshPayload);
   return {
     accessToken: await getAccessToken(handlers, refreshPayload),
-    refreshToken
+    ...(refreshToken && { refreshToken })
   };
 };
 
@@ -82,7 +86,7 @@ export const getAccessTokenFromReq = (req: Request): string | undefined => {
   return (
     req.cookies.access_token ||
     req.headers["x-access-token"] ||
-    req.get("Authorization").replace("Bearer ", "")
+    (req.get("Authorization")||'').replace("Bearer ", "")
   );
 };
 
@@ -125,16 +129,16 @@ export const refreshCookieTokens = async <T extends JwtPayload, U extends JwtPay
 export const setCookieTokens = (tokens: Tokens, res: Response): Tokens => {
   if (tokens.accessToken) {
     res.cookie("access_token", tokens.accessToken, {
-      path: process.env.JWT_COOKIE_PATH || "/",
-      domain: process.env.JWT_COOKIE_DOMAIN || "localhost",
+      // path: process.env.JWT_COOKIE_PATH || "/",
+      // domain: process.env.JWT_COOKIE_DOMAIN || "localhost",
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
     });
   }
   if (tokens.refreshToken) {
     res.cookie("refresh_token", tokens.refreshToken, {
-      path: process.env.JWT_REFRESH_COOKIE_PATH || "/",
-      domain: process.env.JWT_REFRESH_COOKIE_DOMAIN || "localhost",
+      // path: process.env.JWT_REFRESH_COOKIE_PATH || "/",
+      // domain: process.env.JWT_REFRESH_COOKIE_DOMAIN || "localhost",
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
     });

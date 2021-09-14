@@ -5,6 +5,7 @@ import { addResolversToSchema } from "@graphql-tools/schema";
 import { GraphQLFileLoader } from "@graphql-tools/graphql-file-loader";
 import { PrismaClient } from "../prisma";
 import { getAccessTokenFromReq, verifyAccessToken } from "../auth/jwt";
+import { AccessJwtPayload } from "../auth/appJwt";
 import { mergeResolvers } from "@graphql-tools/merge";
 
 
@@ -26,7 +27,8 @@ const addApollo = async (server: Express, prisma: PrismaClient) => {
     schema: schemaWithResolvers,
     context: ({ req, res }) => {
       const token = getAccessTokenFromReq(req);
-      return { req, res, prisma, auth: verifyAccessToken(token) };
+      console.log(token)
+      return { req, res, prisma, auth: verifyAccessToken<AccessJwtPayload>(token) };
     },
   });
 

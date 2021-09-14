@@ -9,6 +9,7 @@ import {
   fetchExchange,
   ssrExchange,
 } from "@urql/core";
+import { authExchange } from '@urql/exchange-auth';
 import { Provider } from "urql";
 
 const isServerSide = typeof window === "undefined";

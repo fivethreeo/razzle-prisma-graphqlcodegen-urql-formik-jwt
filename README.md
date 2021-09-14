@@ -24,13 +24,13 @@ yarn add -D @app/gql@link:./src/gql
 # run a devserver with sqlite
 rm db.sqlite
 node createdb.js
-DATABASE_URL=file:../db.sqlite JWT_SECRET=secret yarn start
+DATABASE_URL=file:../db.sqlite JWT_SECRET=secret JWT_REFRESH_SECRET=secret yarn start
 
 # run a prod build with sqlite
 rm db.sqlite
 node createdb.js
 yarn build
-DATABASE_URL=file:../db.sqlite JWT_SECRET=secret yarn start:prod
+DATABASE_URL=file:../db.sqlite JWT_SECRET=secret JWT_REFRESH_SECRET=secret yarn start:prod
 
 # run a prod build with postgresql
 sed -ie 's/sqlite/postgresql/g' prisma/schema.prisma

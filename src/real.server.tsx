@@ -61,8 +61,6 @@ const jsScriptTagsFromAssets = (
     : "";
 };
 
-const server = express();
-
 export const renderApp = async (req: Request, res: Response) => {
   const public_path =
     typeof CODESANDBOX_HOST !== "undefined"
@@ -130,9 +128,12 @@ export const renderApp = async (req: Request, res: Response) => {
   return { html, context };
 };
 
+
+const prisma = new PrismaClient();
+const server = express();
+
 const createserver = async () => {
 
-  const prisma = new PrismaClient();
 
   const corsOptionsDelegate = function (req, callback) {
     let corsOptions = {

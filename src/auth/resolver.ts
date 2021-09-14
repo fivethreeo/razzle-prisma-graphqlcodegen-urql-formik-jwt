@@ -1,16 +1,13 @@
-import { sign } from "jsonwebtoken";
 import { hash, compare} from "bcryptjs";
 import { AuthPayload, Resolvers } from "../types/resolvers-types";
 import { getTokens, refreshCookieTokens, setCookieTokens } from "./jwt";
-
-import { AccessJwtPayload, RefreshJwtPayload } from "../auth/appJwt";
-import { PayloadHandlers } from "../auth/jwt";
+import { getPayloadHandlers } from "./appJwt";
 
 const resolvers: Resolvers = {
   Query: {
     async me(_, _args, { prisma, auth }) {
       if (!auth) throw new Error("You are not authenticated");
-      return await prisma.user.findFirst({ where: { id: user.id }});
+      return await prisma.user.findFirst({ where: { id: auth.userid }});
     },
     async user(_parent, { id }, { prisma, auth }) {
       try {
@@ -39,20 +36,7 @@ const resolvers: Resolvers = {
             password: await hash(password, 10),
           },
         });
-        const tokens = await getTokens(<PayloadHandlers<AccessJwtPayload, RefreshJwtPayload>>{
-          verifyRefresh: async (refreshToken, refreshPayload) => {
-            return true;
-          },
-          createRefreshPayload: async (prevRefreshPayload) => {
-            return {userid: user.id};
-          },
-          createAccessPayload: async (refreshPayload) => {
-            return {userid: user.id};
-          },
-          storeRefreshToken: async (refreshPayload, refreshToken) => {
-            return true;
-          }
-        });
+        const tokens = await getTokens(getPayloadHandlers(prisma, user));
         return <AuthPayload>setCookieTokens(tokens, res)
       } catch (error) {
         throw new Error(process.env.NODE_ENV === 'development' ? error.message : 'Registration failed' );
@@ -69,20 +53,7 @@ const resolvers: Resolvers = {
           throw new Error(process.env.NODE_ENV === 'development' ? "Incorrect password" : 'Login failed' );
         }
 
-        const tokens = await getTokens(<PayloadHandlers<AccessJwtPayload, RefreshJwtPayload>>{
-          verifyRefresh: async (refreshToken, refreshPayload) => {
-            return true;
-          },
-          createRefreshPayload: async (prevRefreshPayload) => {
-            return {userid: user.id};
-          },
-          createAccessPayload: async (refreshPayload) => {
-            return {userid: user.id};
-          },
-          storeRefreshToken: async (refreshPayload, refreshToken) => {
-            return true;
-          }
-        });
+        const tokens = await getTokens(getPayloadHandlers(prisma, user));
         return <AuthPayload>setCookieTokens(tokens, res)
       } catch (error) {
         throw new Error(error.message);
@@ -90,23 +61,7 @@ const resolvers: Resolvers = {
     },
     async refreshTokens(_, { refreshToken }, { prisma, req, res }) {
       try {
-
-        let user = {id:1};
-
-        const tokens = await refreshCookieTokens(<PayloadHandlers<AccessJwtPayload, RefreshJwtPayload>>{
-          verifyRefresh: async (refreshToken, refreshPayload) => {
-            return true;
-          },
-          createRefreshPayload: async (prevRefreshPayload) => {
-            return {userid: user.id};
-          },
-          createAccessPayload: async (refreshPayload) => {
-            return {userid: user.id};
-          },
-          storeRefreshToken: async (refreshPayload, refreshToken) => {
-            return true;
-          }
-        }, req, res, false);
+        const tokens = await refreshCookieTokens(getPayloadHandlers(prisma), req, res, false);
         return <AuthPayload>tokens
       } catch (error) {
         throw new Error(error.message);
