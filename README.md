@@ -39,7 +39,7 @@ yarn graphql-codegen
 yarn build
 export DATABASE_URL=postgres://username:password@localhost:5432/razzle
 node_modules/.bin/prisma migrate
-JWT_SECRET=secret yarn start:prod
+JWT_SECRET=secret JWT_REFRESH_SECRET=secret yarn start:prod
 ```
 
 https://levelup.gitconnected.com/designing-token-based-authentication-system-flow-868893870e03
