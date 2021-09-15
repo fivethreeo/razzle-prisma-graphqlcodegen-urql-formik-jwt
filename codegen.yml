@@ -5,13 +5,14 @@ overwrite: true
   
 schema: src/**/*.graphql
 documents:
-  - 'src/**/*.ts'
+  - 'src/**/*.tsx'
   - '!src/gql/**/*'
 generates:
   ./src/types/resolvers-types.ts:
     plugins:
       - typescript
       - typescript-resolvers
+      - typescript-operations
     config:
       contextType: ../apollo/context#Context
       useIndexSignature: true

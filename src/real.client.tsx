@@ -13,10 +13,22 @@ import { authExchange } from '@urql/exchange-auth';
 // add query to getAuth
 // import { authExchange } from "./auth/authExchange";
 
-import Me from "./auth/mequery";
-import Refresh from "./auth/refreshmutation";
-
 import { Provider } from "urql";
+import { gql } from "@app/gql";
+
+const { Query, Mutation }  = gql(/* GraphQL */ `
+  query Query {
+    me {
+      id
+    }
+  }
+
+  mutation Mutation {
+    refreshTokens {
+      success
+    }
+  }
+`);
 
 const isServerSide = typeof window === "undefined";
 
@@ -47,9 +59,7 @@ const client = createClient({
           return null;
         }
 
-        const result = await mutate(Refresh, {
-          refreshToken: authState.refreshToken,
-        });
+        const result = await mutate(Refresh);
 
         if (result.data?.refreshCredentials) {
           saveAuthData(result.data.refreshCredentials);
