@@ -1,5 +1,12 @@
-schema: src/**/*.graphql
+config:
+  useTypeImports: true
 
+overwrite: true
+  
+schema: src/**/*.graphql
+documents:
+  - 'src/**/*.ts'
+  - '!src/gql/**/*'
 generates:
   ./src/types/resolvers-types.ts:
     plugins:
@@ -15,4 +22,3 @@ generates:
 
   ./src/gql/:
     preset: gql-tag-operations-preset
-

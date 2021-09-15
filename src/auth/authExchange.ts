@@ -48,13 +48,13 @@ export interface AuthConfig<T> {
   getAuth(params: {
     authState: T | null;
     /** The mutate() method may be used to send one-off mutations to the GraphQL API for the purpose of authentication. */
-    mutate<Data extends unknown, Variables extends Record<string, unknown>>(
+    mutate<Data extends { [key: string]: unknown }, Variables extends { [key: string]: unknown }>(
       query: DocumentNode | TypedDocumentNode<Data, Variables> | string,
       variables?: Variables,
       context?: Partial<OperationContext>
     ): Promise<OperationResult<Data>>;
     /** The query() method may be used to send one-off queries to the GraphQL API for the purpose of authentication. */
-    query<Data extends unknown, Variables extends Record<string, unknown>>(
+    query<Data extends { [key: string]: unknown }, Variables extends { [key: string]: unknown }>(
       query: DocumentNode | TypedDocumentNode<Data, Variables> | string,
       variables?: Variables,
       context?: Partial<OperationContext>
@@ -87,7 +87,7 @@ export function authExchange<T>({
     let authState: T | null = null;
 
     return operations$ => {
-      function mutate<Data extends unknown, Variables extends Record<string, unknown>>(
+      function mutate<Data extends { [key: string]: unknown }, Variables extends { [key: string]: unknown }>(
         query: DocumentNode | string,
         variables?: Variables,
         context?: Partial<OperationContext>
@@ -106,7 +106,7 @@ export function authExchange<T>({
           toPromise
         );
       }
-      function query<Data extends unknown, Variables extends Record<string, unknown>>(
+      function query<Data extends { [key: string]: unknown }, Variables extends { [key: string]: unknown }>(
         query: DocumentNode | string,
         variables?: Variables,
         context?: Partial<OperationContext>

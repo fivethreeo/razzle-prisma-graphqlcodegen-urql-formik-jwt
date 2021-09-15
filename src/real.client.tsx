@@ -9,9 +9,12 @@ import {
   fetchExchange,
   ssrExchange,
 } from "@urql/core";
-// import { authExchange } from '@urql/exchange-auth';
+import { authExchange } from '@urql/exchange-auth';
 // add query to getAuth
-import { authExchange } from './auth/authExchange';
+// import { authExchange } from "./auth/authExchange";
+
+import Me from "./auth/mequery";
+import Refresh from "./auth/refreshmutation";
 
 import { Provider } from "urql";
 
@@ -23,23 +26,6 @@ const ssr = ssrExchange({
   initialState: !isServerSide ? window.__URQL_DATA__ : undefined,
 });
 
-const ME_QUERY = gql`
-  mutation RefreshCredentials($refreshToken: String!) {
-    refreshCredentials(refreshToken: $refreshToken) {
-      refreshToken
-      token
-    }
-  }
-`;
-const REFRESH_TOKEN_MUTATION = gql`
-  mutation RefreshCredentials($refreshToken: String!) {
-    refreshCredentials(refreshToken: $refreshToken) {
-      refreshToken
-      token
-    }
-  }
-`;
-
 const client = createClient({
   url: "http://localhost:3000/graphql",
   exchanges: [
@@ -47,10 +33,12 @@ const client = createClient({
     cacheExchange,
     ssr, // Add `ssr` in front of the `fetchExchange`
     authExchange({
-      async getAuth({ authState, mutate }) {
+      async getAuth({ authState, mutate, query }) {
         if (!authState) {
           const token = getToken();
           const refreshToken = getRefreshToken();
+
+          // const me = await query(Me);
 
           if (token && refreshToken) {
             return { token, refreshToken };
@@ -59,7 +47,7 @@ const client = createClient({
           return null;
         }
 
-        const result = await mutate(REFRESH_TOKEN_MUTATION, {
+        const result = await mutate(Refresh, {
           refreshToken: authState.refreshToken,
         });
 
@@ -82,7 +70,7 @@ const client = createClient({
         }
 
         const fetchOptions =
-          typeof operation.context.fetchOptions === 'function'
+          typeof operation.context.fetchOptions === "function"
             ? operation.context.fetchOptions()
             : operation.context.fetchOptions || {};
 
@@ -100,7 +88,7 @@ const client = createClient({
 
       didAuthError({ error }) {
         return error.graphQLErrors.some(
-          e => e.extensions?.code === 'UNAUTHORIZED'
+          (e) => e.extensions?.code === "UNAUTHORIZED"
         );
       },
 
@@ -108,14 +96,14 @@ const client = createClient({
         if (!authState) {
           // Detect our login mutation and let this operation through:
           return (
-            operation.kind !== 'mutation' ||
+            operation.kind !== "mutation" ||
             // Here we find any mutation definition with the "signin" field
-            !operation.query.definitions.some(definition => {
+            !operation.query.definitions.some((definition) => {
               return (
-                definition.kind === 'OperationDefinition' &&
-                definition.selectionSet.selections.some(node => {
+                definition.kind === "OperationDefinition" &&
+                definition.selectionSet.selections.some((node) => {
                   // The field name is just an example, since register may also be an exception
-                  return node.kind === 'Field' && node.name.value === 'signin';
+                  return node.kind === "Field" && node.name.value === "signin";
                 })
               );
             })
