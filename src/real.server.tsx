@@ -114,7 +114,7 @@ export const renderApp = async (req: Request, res: Response) => {
           <meta name="viewport" content="width=device-width, initial-scale=1">
           <script type="text/javascript">
             window.PUBLIC_PATH = '${public_path}';
-            window.__URQL_DATA__ = JSON.parse(${data});
+            window.__URQL_DATA__ = ${data};
           </script>
           ${cssLinksFromAssets(public_path, assets, 'client')}            
       </head>

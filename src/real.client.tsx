@@ -9,21 +9,21 @@ import {
   fetchExchange,
   ssrExchange,
 } from "@urql/core";
-import { authExchange } from '@urql/exchange-auth';
+// import { authExchange } from '@urql/exchange-auth';
 // add query to getAuth
-// import { authExchange } from "./auth/authExchange";
+import { authExchange } from "./auth/authExchange";
 
 import { Provider } from "urql";
-import { gql } from "@app/gql";
+import { gql } from "./gql";
 
-const { Query, Mutation }  = gql(/* GraphQL */ `
-  query Query {
+const { Me, Refresh }  = gql(/* GraphQL */ `
+  query Me {
     me {
       id
     }
   }
 
-  mutation Mutation {
+  mutation Refresh {
     refreshTokens {
       success
     }
@@ -39,43 +39,39 @@ const ssr = ssrExchange({
 });
 
 const client = createClient({
+  fetchOptions: {
+    credentials: "include"
+  },
   url: "http://localhost:3000/graphql",
   exchanges: [
     dedupExchange,
     cacheExchange,
     ssr, // Add `ssr` in front of the `fetchExchange`
     authExchange({
-      async getAuth({ authState, mutate, query }) {
+      async getAuth({ authState, mutate, query}) {
         if (!authState) {
-          const token = getToken();
-          const refreshToken = getRefreshToken();
+          const meresult = await query(Me, {});
 
-          // const me = await query(Me);
-
-          if (token && refreshToken) {
-            return { token, refreshToken };
+          if (!meresult.error.graphQLErrors.some(
+            (e) => /not authenticated/.test(e.extensions?.code||'')
+          )) {
+            return true;
           }
 
           return null;
         }
 
-        const result = await mutate(Refresh);
+        const result = await mutate(Refresh, {});
 
-        if (result.data?.refreshCredentials) {
-          saveAuthData(result.data.refreshCredentials);
-
-          return result.data.refreshCredentials;
+        if (result.data?.refreshTokens.success) {
+          return true;
         }
-
-        // This is where auth has gone wrong and we need to clean up and redirect to a login page
-        clearStorage();
-        window.location.reload();
 
         return null;
       },
 
       addAuthToOperation({ authState, operation }) {
-        if (!authState || !authState.token) {
+        /* if (!authState || !authState.token) {
           return operation;
         }
 
@@ -93,12 +89,13 @@ const client = createClient({
               Authorization: `Bearer ${authState.token}`,
             },
           },
-        });
+        }); */
+        return operation;
       },
 
       didAuthError({ error }) {
         return error.graphQLErrors.some(
-          (e) => e.extensions?.code === "UNAUTHORIZED"
+          (e) => /not authenticated/.test(e.extensions?.code||'')
         );
       },
 
@@ -113,7 +110,7 @@ const client = createClient({
                 definition.kind === "OperationDefinition" &&
                 definition.selectionSet.selections.some((node) => {
                   // The field name is just an example, since register may also be an exception
-                  return node.kind === "Field" && node.name.value === "signin";
+                  return node.kind === "Field" && /login|registerUser/.test(node.name.value);
                 })
               );
             })
