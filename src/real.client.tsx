@@ -16,13 +16,15 @@ import { authExchange } from "./auth/authExchange";
 import { Provider } from "urql";
 import { gql } from "./gql";
 
-const { Me, Refresh }  = gql(/* GraphQL */ `
+const Me = gql(/* GraphQL */ `
   query Me {
     me {
       id
     }
   }
+`);
 
+const Refresh = gql(/* GraphQL */ `
   mutation Refresh {
     refreshTokens {
       success
